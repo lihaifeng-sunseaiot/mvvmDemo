@@ -19,10 +19,13 @@
             android:id="@+id/btn_getNow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             android:text="获取天气" />
 
         <EditText
             android:id="@+id/et_city_code"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintLeft_toRightOf="@id/btn_getNow"
             app:layout_constraintRight_toLeftOf="@id/btn_getAQI"
             android:layout_width="wrap_content"
@@ -34,6 +37,7 @@
             app:layout_constraintRight_toRightOf="parent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
             android:text="获取空气质量" />
 
         <TextView

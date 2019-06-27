@@ -12,6 +12,8 @@ import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.sunseaiot.heweatherdemo.databinding.ActivityMainBinding;
+import com.tbruyelle.rxpermissions2.Permission;
+import com.tbruyelle.rxpermissions2.RxPermissions;
 
 import interfaces.heweather.com.interfacesmodule.bean.Code;
 import interfaces.heweather.com.interfacesmodule.bean.Lang;
@@ -21,105 +23,59 @@ import interfaces.heweather.com.interfacesmodule.bean.air.now.AirNowCity;
 import interfaces.heweather.com.interfacesmodule.bean.weather.now.Now;
 import interfaces.heweather.com.interfacesmodule.bean.weather.now.NowBase;
 import interfaces.heweather.com.interfacesmodule.view.HeWeather;
+import io.reactivex.functions.Consumer;
 import me.jessyan.autosize.utils.ScreenUtils;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    EditText etCity;
-    Button btnGetNow;
-    Button btnGetAir;
-    TextView tvNowinfo;
-    TextView tvAirinfo;
     MainViewModel mViewModel;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        tvNowinfo = findViewById(R.id.tv_nowinfo);
-        tvAirinfo = findViewById(R.id.tv_airinfo);
-        btnGetNow = findViewById(R.id.btn_getNow);
-        btnGetNow.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                getWeatherNow();
-            }
-        });
 
-        btnGetAir = findViewById(R.id.btn_getAQI);
-        btnGetAir.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                getAQI();
-            }
-        });
-
-        etCity = findViewById(R.id.et_city_code);
-
-        ActivityMainBinding activityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        activityMainBinding.tvAirinfo.setText("haha");
+        applyPermission();
 
         mViewModel = new MainViewModel(new WeatherRepository());
-    }
-
-    public void getWeatherNow() {
-        if (etCity.getText().toString().trim().length() <= 0) {
-            HeWeather.getWeatherNow(MainActivity.this, Lang.CHINESE_SIMPLIFIED, Unit.METRIC, new HeWeather.OnResultWeatherNowBeanListener() {
-                @Override
-                public void onError(Throwable throwable) {
-                    Log.i(TAG, "Weather Now onError: ", throwable);
-                    showToast(throwable.getMessage());
-                }
-
-                @Override
-                public void onSuccess(Now now) {
-                    showNowInfo(now);
-                }
-            });
-        } else {
-            HeWeather.getWeatherNow(MainActivity.this, etCity.getText().toString(), Lang.ENGLISH , Unit.METRIC , new HeWeather.OnResultWeatherNowBeanListener() {
-                @Override
-                public void onError(Throwable e) {
-                    Log.i(TAG, "Weather Now onError: ", e);
-                    showToast(e.getMessage());
-                }
-
-                @Override
-                public void onSuccess(Now dataObject) {
-                    showNowInfo(dataObject);
-                }
-            });
-        }
+        final ActivityMainBinding activityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        activityMainBinding.btnGetNow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mViewModel.getWeatherNowInfo(getBaseContext(), activityMainBinding.etCityCode.getText().toString(),Lang.CHINESE_SIMPLIFIED, Unit.METRIC);
+            }
+        });
+        activityMainBinding.setViewModel(mViewModel);
 
     }
 
     public void getAQI() {
-        if (etCity.getText().toString().trim().length() <= 0) {
-            HeWeather.getAirNow(MainActivity.this, Lang.CHINESE_SIMPLIFIED, Unit.METRIC, new HeWeather.OnResultAirNowBeansListener() {
-                @Override
-                public void onError(Throwable throwable) {
-                    Log.i(TAG, "AirNow On Error", throwable);
-                    showToast(throwable.getMessage());
-                }
 
-                @Override
-                public void onSuccess(AirNow airNow) {
-                    showAirInfo(airNow);
-                }
-            });
-        } else {
-            HeWeather.getAirNow(MainActivity.this, etCity.getText().toString(), Lang.CHINESE_SIMPLIFIED, Unit.METRIC, new HeWeather.OnResultAirNowBeansListener() {
-                @Override
-                public void onError(Throwable throwable) {
-                    Log.i(TAG, "AirNow On Error", throwable);
-                    showToast(throwable.getMessage());
-                }
+    }
 
-                @Override
-                public void onSuccess(AirNow airNow) {
-                   showAirInfo(airNow);
-                }
-            });
+    private void applyPermission() {
+        RxPermissions rxPermissions = new RxPermissions(this);
+        if(!rxPermissions.isGranted("android.permission.ACCESS_COARSE_LOCATION")
+                || !rxPermissions.isGranted("android.permission.ACCESS_FINE_LOCATION")) {
+            rxPermissions.requestEach("android.permission.ACCESS_COARSE_LOCATION",
+                    "android.permission.ACCESS_FINE_LOCATION")
+                    .subscribe(new Consumer<Permission>() {
+                        @Override
+                        public void accept(Permission permission) throws Exception {
+                            if (permission.granted) {
+                                showToast("权限申请成功");
+                            } else if (permission.shouldShowRequestPermissionRationale) {
+                                showToast("是否永远");
+                            } else {
+                                showToast("权限申请失败");
+                            }
+                        }
+                    }, new Consumer<Throwable>() {
+                        @Override
+                        public void accept(Throwable throwable) throws Exception {
+                            showToast("申请失败");
+                        }
+                    });
         }
     }
 
@@ -127,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
     }
 
-    private void showNowInfo(Now dataObject) {
+/*    private void showNowInfo(Now dataObject) {
         String nowData = new Gson().toJson(dataObject);
         Log.i(TAG, " Weather Now onSuccess: " + nowData);
         //先判断返回的status是否正确，当status正确时获取数据，若status不正确，可查看status对应的Code值找到原因
@@ -170,5 +126,5 @@ public class MainActivity extends AppCompatActivity {
             tvAirinfo.setText("failed code: " + code);
             showToast("failed code: " + code);
         }
-    }
+    }*/
 }
